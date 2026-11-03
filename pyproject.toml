@@ -1,0 +1,33 @@
+[project]
+name = "qpilot-2-0"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "codeHariharan", email = "hariharan120208@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "chromadb>=1.5.9",
+    "faiss-cpu>=1.15.1",
+    "fastapi>=0.162.0",
+    "langchain>=1.4.7",
+    "langchain-community>=0.4.2",
+    "langchain-core>=1.7.3",
+    "langchain-groq>=1.1.3",
+    "openpyxl>=3.1.5",
+    "pymupdf>=2.0",
+    "pypdf>=6.21.4",
+    "python-docx>=1.2.0",
+    "python-dotenv>=1.2.4",
+    "python-pptx>=1.0.2",
+    "sentence-transformers>=6.2.0",
+    "streamlit>=1.66.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.14,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = false
