@@ -1,5 +1,6 @@
 from fastapi import FastAPI
-from router import router
 
-app =  FastAPI()
+from api.router import router
+
+app = FastAPI(title="QPilot API")
 app.include_router(router)

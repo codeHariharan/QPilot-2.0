@@ -18,7 +18,7 @@ APP_DIR = Path(__file__).resolve().parent
 CONFIG_PATH = APP_DIR / "config" / "config.yml"
 SESSION_ROOT = APP_DIR / "temp"
 
-Base_url = " http://localhost:8501"
+API_URL = "http://localhost:8000"
 
 st.set_page_config(
     page_title="QPilot",
@@ -368,13 +368,20 @@ if prompt := st.chat_input(
         with st.chat_message("assistant"):
             with st.spinner("Searching your documents..."):
                 try:
-                  
-                   answer = st.session_state.retriever.generate(
-                        prompt,
-                        st.session_state.retriever,
-                        top_k=3,
+                    response = requests.post(
+                        f"{API_URL}/query",
+                        json={
+                            "session_id": st.session_state.session_id,
+                            "query": prompt,
+                            "top_k": 3,
+                        },
+                        timeout=60,
                     )
-                except Exception as error:
+                    response.raise_for_status()
+                    answer = response.json()["answer"]
+                except requests.exceptions.ConnectionError:
+                    answer = "I can't reach the QPilot API. Is the FastAPI server running?"
+                except requests.exceptions.RequestException as error:
                     answer = f"Sorry, I couldn't generate an answer: {error}"
 
             st.markdown(answer)
