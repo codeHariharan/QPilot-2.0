@@ -10,6 +10,7 @@ from src.chunking import Chunking
 from src.embedding import EmbeddingManager
 from src.generation import RAGRetriever
 from src.ingestion import Ingest, SUPPORTED_EXTENSIONS
+from src.session_cleanup import SessionCleanupJob
 from src.vectore_store import VectorStore
 
 import requests
@@ -202,6 +203,16 @@ def load_embedding_manager(model_name: str) -> EmbeddingManager:
     return EmbeddingManager(model_name)
 
 
+@st.cache_resource
+def get_session_cleanup_job() -> SessionCleanupJob:
+    job = SessionCleanupJob(SESSION_ROOT)
+    job.start()
+    return job
+
+
+session_cleanup_job = get_session_cleanup_job()
+
+
 def start_session() -> None:
     SESSION_ROOT.mkdir(parents=True, exist_ok=True)
 
@@ -216,6 +227,7 @@ def start_session() -> None:
         collection_name=CONFIG["vector_store"]["collection_name"],
         persistant_dir=str(session_dir / "vector_store"),
     )
+    session_cleanup_job.register_session(session_id, vector_store)
     embedding_manager = load_embedding_manager(CONFIG["model_name"])
 
     st.session_state.session_id = session_id
@@ -229,6 +241,7 @@ def start_session() -> None:
 
 
 def delete_session_data() -> None:
+    session_cleanup_job.unregister_session(st.session_state.session_id)
     session_dir = Path(st.session_state.session_dir)
     vector_store = st.session_state.vector_store
     client = vector_store.client
@@ -246,12 +259,15 @@ def delete_session_data() -> None:
     shutil.rmtree(session_dir)
 
 
-if "session_id" not in st.session_state:
-    try:
+try:
+    if "session_id" not in st.session_state:
         start_session()
-    except Exception as error:
-        st.error(f"Could not start a QPilot session: {error}")
-        st.stop()
+    elif not session_cleanup_job.touch_session(st.session_state.session_id):
+        st.session_state.clear()
+        start_session()
+except Exception as error:
+    st.error(f"Could not start a QPilot session: {error}")
+    st.stop()
 
 
 with st.sidebar:

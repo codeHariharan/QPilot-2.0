@@ -60,6 +60,7 @@ The application is split into a Streamlit frontend and a FastAPI backend. Stream
 - **Pydantic API validation:** session IDs, query length, and `top_k` are validated by request schemas.
 - **Conversation state:** Streamlit retains the chat history within the active browser session.
 - **Temporary-data controls:** a sidebar action clears the session's uploads and vector database.
+- **Automatic session expiration:** inactive session directories are removed after 60 minutes; cleanup runs every 5 minutes while Streamlit is running.
 - **Friendly system behavior:** greetings and casual messages are handled separately from factual document questions.
 - **Custom dark interface:** Streamlit components are styled with custom CSS for a focused chat experience.
 
@@ -130,6 +131,7 @@ When Streamlit starts, `start_session()` creates:
 - a session-specific Chroma client and collection
 
 The session ID is also sent to FastAPI so the backend can locate the correct vector store.
+The app refreshes the session's last-modified time when it runs. A background cleanup job closes the session's Chroma client and removes its directory after 60 minutes without activity. If an expired browser session is used again, the app starts a fresh session.
 
 ### 2. Document ingestion
 
@@ -520,9 +522,10 @@ Session data is not stored in the browser; it is stored locally in `temp/`. The 
 Data remains on disk until:
 
 - **End session & delete data** is selected, or
+- it expires after 60 minutes without activity while Streamlit is running, or
 - it is removed manually by the operator
 
-Restarting Streamlit can create a new browser session ID. Existing folders may remain in `temp/` if they were not explicitly deleted.
+The cleanup job checks every 5 minutes. It only removes directories named with the app's 32-character session IDs. Restarting Streamlit pauses cleanup until the app runs again.
 
 ---
 
@@ -612,7 +615,7 @@ For a production deployment, add authentication, HTTPS, controlled network acces
 - **No automated tests:** the repository currently contains no test suite.
 - **Model variability:** Groq availability, model behavior, network latency, and API quota can affect responses.
 - **Potential extraction loss:** tables, layouts, headers, footers, and complex formatting can lose structure during conversion.
-- **Temporary data cleanup:** existing sessions remain on disk until manually or explicitly deleted.
+- **Temporary data cleanup:** automatic expiration runs only while the Streamlit app is running.
 
 ---
 
